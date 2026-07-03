@@ -21,3 +21,9 @@ model FridgeItem {
   category  String?
   createdAt DateTime @default(now())
 }
+
+model SeasonalIngredient {
+  id     String @id @default(cuid())
+  name   String @unique
+  months Int[]  // 1 = janvier, 12 = décembre
+}

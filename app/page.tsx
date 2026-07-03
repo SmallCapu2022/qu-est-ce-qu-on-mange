@@ -1,6 +1,7 @@
 import { PrismaClient } from '@/app/generated/prisma/client'
 import AddItemForm from '@/components/AddItemForm'
 import FridgeList from '@/components/FridgeList'
+import RecipeGenerator from '@/components/RecipeGenerator'
 
 const prisma = new PrismaClient()
 
@@ -14,6 +15,7 @@ export default async function Home() {
       <h1 className="text-2xl font-bold mb-6">🧊 Mon frigo</h1>
       <AddItemForm />
       <FridgeList items={items} />
+      <RecipeGenerator />
     </main>
   )
 }
