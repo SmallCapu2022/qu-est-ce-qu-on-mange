@@ -38,55 +38,62 @@ export default function RecipeGenerator() {
 
   return (
     <div className="mt-8">
-      <div className="flex items-center gap-3 mb-3">
-        <button
-          onClick={() => setStrictMode(true)}
-          className={`px-3 py-1.5 rounded text-sm ${
-            strictMode ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'
-          }`}
-        >
-          🧊 Uniquement mon frigo
-        </button>
-        <button
-          onClick={() => setStrictMode(false)}
-          className={`px-3 py-1.5 rounded text-sm ${
-            !strictMode ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'
-          }`}
-        >
-          🛒 Avec suggestions de saison
-        </button>
+      <div className="mb-4">
+        <p className="text-sm font-bold text-[#5F5E5A] mb-2">Mode de génération</p>
+        <div className="inline-flex rounded-lg border border-[#D3D1C7] overflow-hidden">
+          <button
+            onClick={() => setStrictMode(true)}
+            className={`px-4 py-2 text-sm font-bold transition-colors ${
+              strictMode
+                ? 'bg-basilic text-white'
+                : 'bg-[#F1EFE8] text-[#888780] hover:bg-[#E5E2D8]'
+            }`}
+          >
+            🧊 Uniquement mon frigo
+          </button>
+          <button
+            onClick={() => setStrictMode(false)}
+            className={`px-4 py-2 text-sm font-bold transition-colors border-l border-[#D3D1C7] ${
+              !strictMode
+                ? 'bg-basilic text-white'
+                : 'bg-[#F1EFE8] text-[#888780] hover:bg-[#E5E2D8]'
+            }`}
+          >
+            🛒 Avec suggestions de saison
+          </button>
+        </div>
       </div>
 
       <button
         onClick={handleGenerate}
         disabled={loading}
-        className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 disabled:opacity-50"
+        className="bg-corail text-corail-dark font-bold px-4 py-2 rounded-lg hover:opacity-90 disabled:opacity-50"
       >
         {loading ? 'Génération en cours...' : '🍳 Génère-moi des recettes'}
       </button>
 
-      {error && <p className="text-red-600 mt-2">{error}</p>}
+      {error && <p className="text-framboise-dark mt-2">{error}</p>}
 
       <div className="mt-4 space-y-4">
         {recipes.map((recipe, i) => {
           const isSaved = savedTitles.includes(recipe.title)
           return (
-            <div key={i} className="border rounded p-4">
+            <div key={i} className="border border-[#D3D1C7] bg-white rounded-xl p-4">
               <div className="flex justify-between items-start">
-                <h3 className="font-bold text-lg">{recipe.title}</h3>
+                <h3 className="font-semibold text-lg">{recipe.title}</h3>
                 <button
                   onClick={() => handleSave(recipe)}
                   disabled={isSaved}
-                  className="text-sm text-blue-600 hover:underline disabled:text-gray-400 disabled:no-underline"
+                  className="text-sm text-framboise hover:underline disabled:text-[#B4B2A9] disabled:no-underline font-bold"
                 >
                   {isSaved ? '✓ Sauvegardée' : '⭐ Sauvegarder'}
                 </button>
               </div>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-[#5F5E5A] mt-1">
                 Ingrédients : {recipe.ingredients.join(', ')}
               </p>
               {recipe.missingIngredients.length > 0 && (
-                <p className="text-sm text-orange-600 mt-1">
+                <p className="text-sm text-miel-dark mt-1">
                   Manque : {recipe.missingIngredients.join(', ')}
                 </p>
               )}

@@ -22,7 +22,7 @@ export default function ShoppingListButton({ recipeId }: { recipeId: string }) {
       <button
         onClick={handleCheck}
         disabled={loading}
-        className="text-sm text-purple-600 hover:underline disabled:opacity-50"
+        className="text-sm text-framboise hover:underline disabled:opacity-50 font-bold"
       >
         {loading ? 'Vérification...' : '🛒 Voir ce qu\'il me manque'}
       </button>
@@ -30,13 +30,13 @@ export default function ShoppingListButton({ recipeId }: { recipeId: string }) {
       {missing !== null && (
         <div className="mt-2 text-sm">
           {missing.length === 0 ? (
-            <p className="text-green-600">
+            <p className="text-basilic-dark">
               Tu as tout ce qu'il faut dans ton frigo ! 🎉
             </p>
           ) : (
             <div>
-              <p className="text-gray-600 mb-1">À acheter :</p>
-              <ul className="list-disc list-inside text-orange-600">
+              <p className="text-[#5F5E5A] mb-1">À acheter :</p>
+              <ul className="list-disc list-inside text-miel-dark">
                 {missing.map((item, i) => (
                   <li key={i}>{item}</li>
                 ))}

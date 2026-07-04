@@ -52,11 +52,12 @@ model Session {
 }
 
 model UserPreferences {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  diet      String?
-  allergies String[]
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  diet        String?
+  allergies   String[]
+  householdSize Int?   @default(1)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model FridgeItem {

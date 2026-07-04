@@ -1,11 +1,10 @@
 'use server'
 
-import { PrismaClient } from '@/app/generated/prisma/client'
 import { revalidatePath } from 'next/cache'
 import { GoogleGenAI } from '@google/genai'
 import { auth } from '@/auth'
 
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 ///////////////////////////////////////////
 // FRIGO
@@ -128,7 +127,7 @@ export async function generateRecipes(strictMode: boolean) {
     where: { months: { has: currentMonth } },
   })
 
-  // 3. Récupérer les préférences utilisateur (NOUVEAU)
+  // 3. Récupérer les préférences utilisateur
   const preferences = await prisma.userPreferences.findUnique({
     where: { userId: session.user.id },
   })
@@ -144,7 +143,6 @@ export async function generateRecipes(strictMode: boolean) {
     ? `Utilise UNIQUEMENT les ingrédients présents dans le frigo, plus des basiques de placard (sel, poivre, huile, épices courantes). N'ajoute AUCUN ingrédient supplémentaire, même de saison, si l'utilisateur ne l'a pas dans son frigo. Le champ "missingIngredients" doit rester vide ou quasi vide.`
     : `Propose des recettes qui utilisent en priorité les ingrédients du frigo, mais tu peux aussi suggérer d'ajouter quelques ingrédients de saison pour enrichir les recettes, même s'ils manquent dans le frigo. Liste clairement les ingrédients manquants dans "missingIngredients".`
 
-  // NOUVEAU : construction des textes régime/allergies
   const dietText = preferences?.diet
     ? `L'utilisateur suit un régime : ${preferences.diet}. Les recettes DOIVENT être compatibles avec ce régime, sans exception.`
     : ''
@@ -152,6 +150,8 @@ export async function generateRecipes(strictMode: boolean) {
   const allergiesText = preferences?.allergies && preferences.allergies.length > 0
     ? `L'utilisateur est allergique ou souhaite exclure : ${preferences.allergies.join(', ')}. N'inclus JAMAIS ces ingrédients dans les recettes, même en petite quantité.`
     : ''
+
+  const servingsText = `Adapte les quantités des ingrédients pour ${preferences?.householdSize || 1} personne(s).`
 
   const prompt = `Tu es un assistant culinaire. Voici les ingrédients disponibles dans le frigo : ${fridgeList}.
 
@@ -161,6 +161,7 @@ ${instructionMode}
 
 ${dietText}
 ${allergiesText}
+${servingsText}
 
 Propose 3 recettes. Pour chaque recette, donne :
 - Un titre
@@ -213,23 +214,50 @@ export async function getUserPreferences() {
   })
 }
 
-export async function updateUserPreferences(formData: FormData) {
-  const session = await auth()
-  if (!session?.user?.id) return
-
+// Logique métier partagée
+async function savePreferencesData(userId: string, formData: FormData) {
   const diet = formData.get('diet') as string
   const allergiesRaw = formData.get('allergies') as string
+  const householdSizeRaw = formData.get('householdSize') as string
   const allergies = allergiesRaw
     ? allergiesRaw.split(',').map((a) => a.trim()).filter(Boolean)
     : []
+  const householdSize = householdSizeRaw ? parseInt(householdSizeRaw) : 1
 
   await prisma.userPreferences.upsert({
-    where: { userId: session.user.id },
-    update: { diet: diet || null, allergies },
-    create: { userId: session.user.id, diet: diet || null, allergies },
+    where: { userId },
+    update: { diet: diet || null, allergies, householdSize },
+    create: { userId, diet: diet || null, allergies, householdSize },
   })
+}
 
-  revalidatePath('/preferences')
+// Version pour la page Profil (avec état de confirmation, via useActionState)
+type PreferencesState = {
+  success: boolean
+  message: string
+}
+
+export async function updateUserPreferences(
+  prevState: PreferencesState,
+  formData: FormData
+): Promise<PreferencesState> {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return { success: false, message: 'Non connecté.' }
+  }
+
+  await savePreferencesData(session.user.id, formData)
+  revalidatePath('/profil')
+  return { success: true, message: '✅ Préférences enregistrées !' }
+}
+
+// Version pour l'onboarding (formulaire classique, pas de useActionState)
+export async function saveOnboardingPreferences(formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) return
+
+  await savePreferencesData(session.user.id, formData)
+  revalidatePath('/onboarding')
 }
 
 ///////////////////////////////////////////
