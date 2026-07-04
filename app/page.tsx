@@ -14,7 +14,7 @@ export default async function HomePage() {
 
   return (
     <main className="max-w-xl mx-auto p-8 text-center mt-16">
-      <h1 className="text-4xl font-semibold mb-4">🧊 Qu'est-ce qu'on mange ?</h1>
+      <h1 className="text-4xl font-semibold mb-4">🍲 Qu'est-ce que tu mijotes ?</h1>
       <p className="text-[#5F5E5A] mb-8">
         Dis-nous ce qu'il y a dans ton frigo, et on te propose des recettes
         adaptées à tes goûts, ton régime, et la saison.

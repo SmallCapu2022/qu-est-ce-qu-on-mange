@@ -16,10 +16,9 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Qu'est-ce qu'on mange ?",
-  description: "Génère des recettes à partir de ce que tu as dans ton frigo.",
+  title: "Qu'est-ce que tu mijotes ?",
+  description: "Génère des recettes à partir de ce que tu as dans ton frigo, adaptées à ton régime et à la saison.",
 };
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`${fraunces.variable} ${nunito.variable}`}>

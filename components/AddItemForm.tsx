@@ -15,23 +15,23 @@ export default function AddItemForm() {
   return (
     <form
       action={addFridgeItem}
-      className="bg-white border border-[#D3D1C7] rounded-xl p-4 flex flex-col sm:flex-row gap-2 mb-6"
+      className="bg-white border border-[#D3D1C7] rounded-xl p-4 flex flex-col sm:flex-row sm:items-stretch gap-2 mb-6"
     >
       <input
         name="name"
         placeholder="Nom (ex: courgette)"
         required
-        className="border border-[#D3D1C7] rounded-lg px-3 py-2 flex-1"
+        className="h-11 border border-[#D3D1C7] rounded-lg px-3 flex-1"
       />
       <input
         name="quantity"
         placeholder="Quantité (ex: 500g, 1L)"
-        className="border border-[#D3D1C7] rounded-lg px-3 py-2 sm:w-36"
+        className="h-11 border border-[#D3D1C7] rounded-lg px-3 sm:w-36"
       />
       <select
         name="category"
         defaultValue=""
-        className="border border-[#D3D1C7] rounded-lg px-3 py-2 sm:w-44"
+        className="h-11 border border-[#D3D1C7] rounded-lg px-3 sm:w-44"
       >
         <option value="">Catégorie</option>
         {categories.map((cat) => (
@@ -42,7 +42,7 @@ export default function AddItemForm() {
       </select>
       <button
         type="submit"
-        className="bg-corail text-corail-dark font-bold px-4 py-2 rounded-lg hover:opacity-90"
+        className="h-11 bg-corail text-corail-dark font-bold px-4 rounded-lg hover:opacity-90"
       >
         Ajouter
       </button>
