@@ -27,3 +27,12 @@ model SeasonalIngredient {
   name   String @unique
   months Int[]  // 1 = janvier, 12 = décembre
 }
+
+model SavedRecipe {
+  id                  String   @id @default(cuid())
+  title               String
+  ingredients         String[]
+  missingIngredients  String[]
+  steps               String[]
+  createdAt           DateTime @default(now())
+}

@@ -99,3 +99,33 @@ Réponds uniquement avec un JSON valide, sans texte avant ou après, au format s
     return { error: 'Erreur de format dans la réponse IA.' }
   }
 }
+
+type RecipeInput = {
+  title: string
+  ingredients: string[]
+  missingIngredients: string[]
+  steps: string[]
+}
+
+export async function saveRecipe(recipe: RecipeInput) {
+  await prisma.savedRecipe.create({
+    data: {
+      title: recipe.title,
+      ingredients: recipe.ingredients,
+      missingIngredients: recipe.missingIngredients,
+      steps: recipe.steps,
+    },
+  })
+  revalidatePath('/recettes')
+}
+
+export async function getSavedRecipes() {
+  return prisma.savedRecipe.findMany({
+    orderBy: { createdAt: 'desc' },
+  })
+}
+
+export async function deleteSavedRecipe(id: string) {
+  await prisma.savedRecipe.delete({ where: { id } })
+  revalidatePath('/recettes')
+}
