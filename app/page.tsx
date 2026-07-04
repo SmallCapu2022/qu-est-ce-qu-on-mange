@@ -25,8 +25,11 @@ export default async function Home() {
 
       {session?.user && (
         <>
-          <Link href="/recettes" className="text-blue-600 hover:underline text-sm block mb-4">
+          <Link href="/recettes" className="text-blue-600 hover:underline text-sm block mb-2">
             Voir mes recettes sauvegardées →
+          </Link>
+          <Link href="/preferences" className="text-blue-600 hover:underline text-sm block mb-4">
+            Gérer mes préférences alimentaires →
           </Link>
           <AddItemForm />
           <FridgeList items={items} />

@@ -1,4 +1,5 @@
 import { getSavedRecipes, deleteSavedRecipe } from '@/lib/actions'
+import ShoppingListButton from '@/components/ShoppingListButton'
 
 export default async function RecettesPage() {
   const recipes = await getSavedRecipes()
@@ -30,6 +31,7 @@ export default async function RecettesPage() {
                 <li key={j}>{step}</li>
               ))}
             </ol>
+            <ShoppingListButton recipeId={recipe.id} />
           </div>
         ))}
       </div>

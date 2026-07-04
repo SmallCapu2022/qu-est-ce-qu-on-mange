@@ -128,7 +128,12 @@ export async function generateRecipes(strictMode: boolean) {
     where: { months: { has: currentMonth } },
   })
 
-  // 3. Construire le prompt
+  // 3. Récupérer les préférences utilisateur (NOUVEAU)
+  const preferences = await prisma.userPreferences.findUnique({
+    where: { userId: session.user.id },
+  })
+
+  // 4. Construire le prompt
   const fridgeList = fridgeItems
     .map((item) => `${item.name}${item.quantity ? ` (${item.quantity})` : ''}`)
     .join(', ')
@@ -139,11 +144,23 @@ export async function generateRecipes(strictMode: boolean) {
     ? `Utilise UNIQUEMENT les ingrédients présents dans le frigo, plus des basiques de placard (sel, poivre, huile, épices courantes). N'ajoute AUCUN ingrédient supplémentaire, même de saison, si l'utilisateur ne l'a pas dans son frigo. Le champ "missingIngredients" doit rester vide ou quasi vide.`
     : `Propose des recettes qui utilisent en priorité les ingrédients du frigo, mais tu peux aussi suggérer d'ajouter quelques ingrédients de saison pour enrichir les recettes, même s'ils manquent dans le frigo. Liste clairement les ingrédients manquants dans "missingIngredients".`
 
+  // NOUVEAU : construction des textes régime/allergies
+  const dietText = preferences?.diet
+    ? `L'utilisateur suit un régime : ${preferences.diet}. Les recettes DOIVENT être compatibles avec ce régime, sans exception.`
+    : ''
+
+  const allergiesText = preferences?.allergies && preferences.allergies.length > 0
+    ? `L'utilisateur est allergique ou souhaite exclure : ${preferences.allergies.join(', ')}. N'inclus JAMAIS ces ingrédients dans les recettes, même en petite quantité.`
+    : ''
+
   const prompt = `Tu es un assistant culinaire. Voici les ingrédients disponibles dans le frigo : ${fridgeList}.
 
 Les ingrédients de saison ce mois-ci sont : ${seasonalList}.
 
 ${instructionMode}
+
+${dietText}
+${allergiesText}
 
 Propose 3 recettes. Pour chaque recette, donne :
 - Un titre
@@ -163,7 +180,7 @@ Réponds uniquement avec un JSON valide, sans texte avant ou après, au format s
   ]
 }`
 
-  // 4. Appeler Gemini
+  // 5. Appeler Gemini
   const response = await genAI.models.generateContent({
     model: 'gemini-2.5-flash',
     contents: prompt,
@@ -182,4 +199,65 @@ Réponds uniquement avec un JSON valide, sans texte avant ou après, au format s
   } catch {
     return { error: 'Erreur de format dans la réponse IA.' }
   }
+}
+///////////////////////////////////////////
+// PRÉFÉRENCES UTILISATEUR
+///////////////////////////////////////////
+
+export async function getUserPreferences() {
+  const session = await auth()
+  if (!session?.user?.id) return null
+
+  return prisma.userPreferences.findUnique({
+    where: { userId: session.user.id },
+  })
+}
+
+export async function updateUserPreferences(formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) return
+
+  const diet = formData.get('diet') as string
+  const allergiesRaw = formData.get('allergies') as string
+  const allergies = allergiesRaw
+    ? allergiesRaw.split(',').map((a) => a.trim()).filter(Boolean)
+    : []
+
+  await prisma.userPreferences.upsert({
+    where: { userId: session.user.id },
+    update: { diet: diet || null, allergies },
+    create: { userId: session.user.id, diet: diet || null, allergies },
+  })
+
+  revalidatePath('/preferences')
+}
+
+///////////////////////////////////////////
+// LISTE DE COURSES
+///////////////////////////////////////////
+export async function getShoppingList(
+  recipeId: string
+): Promise<{ missing: string[] } | { error: string }> {
+  const session = await auth()
+  if (!session?.user?.id) return { error: 'Non connecté.' }
+
+  const recipe = await prisma.savedRecipe.findFirst({
+    where: { id: recipeId, userId: session.user.id },
+  })
+
+  if (!recipe) return { error: 'Recette introuvable.' }
+
+  const fridgeItems = await prisma.fridgeItem.findMany({
+    where: { userId: session.user.id },
+  })
+
+  const fridgeNames = fridgeItems.map((item) => item.name.toLowerCase().trim())
+
+  const missing = recipe.ingredients.filter((ingredient) => {
+    return !fridgeNames.some((fridgeName) =>
+      ingredient.toLowerCase().includes(fridgeName)
+    )
+  })
+
+  return { missing }
 }
