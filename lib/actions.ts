@@ -3,10 +3,18 @@
 import { PrismaClient } from '@/app/generated/prisma/client'
 import { revalidatePath } from 'next/cache'
 import { GoogleGenAI } from '@google/genai'
+import { auth } from '@/auth'
 
 const prisma = new PrismaClient()
 
+///////////////////////////////////////////
+// FRIGO
+///////////////////////////////////////////
+
 export async function addFridgeItem(formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) return
+
   const name = formData.get('name') as string
   const quantity = formData.get('quantity') as string
   const category = formData.get('category') as string
@@ -14,31 +22,108 @@ export async function addFridgeItem(formData: FormData) {
   if (!name) return
 
   await prisma.fridgeItem.create({
-    data: { name, quantity: quantity || null, category: category || null },
+    data: {
+      name,
+      quantity: quantity || null,
+      category: category || null,
+      userId: session.user.id,
+    },
   })
 
   revalidatePath('/')
 }
 
 export async function deleteFridgeItem(id: string) {
-  await prisma.fridgeItem.delete({ where: { id } })
+  const session = await auth()
+  if (!session?.user?.id) return
+
+  await prisma.fridgeItem.deleteMany({
+    where: { id, userId: session.user.id },
+  })
+
   revalidatePath('/')
 }
 
+export async function getFridgeItems() {
+  const session = await auth()
+  if (!session?.user?.id) return []
+
+  return prisma.fridgeItem.findMany({
+    where: { userId: session.user.id },
+    orderBy: { createdAt: 'desc' },
+  })
+}
+
+///////////////////////////////////////////
+// RECETTES SAUVEGARDÉES
+///////////////////////////////////////////
+
+type RecipeInput = {
+  title: string
+  ingredients: string[]
+  missingIngredients: string[]
+  steps: string[]
+}
+
+export async function saveRecipe(recipe: RecipeInput) {
+  const session = await auth()
+  if (!session?.user?.id) return
+
+  await prisma.savedRecipe.create({
+    data: {
+      title: recipe.title,
+      ingredients: recipe.ingredients,
+      missingIngredients: recipe.missingIngredients,
+      steps: recipe.steps,
+      userId: session.user.id,
+    },
+  })
+  revalidatePath('/recettes')
+}
+
+export async function getSavedRecipes() {
+  const session = await auth()
+  if (!session?.user?.id) return []
+
+  return prisma.savedRecipe.findMany({
+    where: { userId: session.user.id },
+    orderBy: { createdAt: 'desc' },
+  })
+}
+
+export async function deleteSavedRecipe(id: string) {
+  const session = await auth()
+  if (!session?.user?.id) return
+
+  await prisma.savedRecipe.deleteMany({
+    where: { id, userId: session.user.id },
+  })
+  revalidatePath('/recettes')
+}
+
+///////////////////////////////////////////
+// GÉNÉRATION IA
 ///////////////////////////////////////////
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
 export async function generateRecipes(strictMode: boolean) {
-  // 1. Récupérer le frigo actuel
-  const fridgeItems = await prisma.fridgeItem.findMany()
+  const session = await auth()
+  if (!session?.user?.id) {
+    return { error: 'Tu dois être connecté pour générer des recettes.' }
+  }
+
+  // 1. Récupérer le frigo de l'utilisateur connecté
+  const fridgeItems = await prisma.fridgeItem.findMany({
+    where: { userId: session.user.id },
+  })
 
   if (fridgeItems.length === 0) {
     return { error: 'Ton frigo est vide, ajoute des ingrédients d\'abord.' }
   }
 
   // 2. Récupérer les ingrédients de saison pour le mois actuel
-  const currentMonth = new Date().getMonth() + 1 // getMonth() commence à 0
+  const currentMonth = new Date().getMonth() + 1
   const seasonalItems = await prisma.seasonalIngredient.findMany({
     where: { months: { has: currentMonth } },
   })
@@ -91,41 +176,10 @@ Réponds uniquement avec un JSON valide, sans texte avant ou après, au format s
   }
 
   try {
-    // Gemini peut parfois entourer le JSON de ```json ... ``` malgré la consigne
     const cleaned = text.replace(/```json\n?|\n?```/g, '').trim()
     const parsed = JSON.parse(cleaned)
     return { recipes: parsed.recipes }
   } catch {
     return { error: 'Erreur de format dans la réponse IA.' }
   }
-}
-
-type RecipeInput = {
-  title: string
-  ingredients: string[]
-  missingIngredients: string[]
-  steps: string[]
-}
-
-export async function saveRecipe(recipe: RecipeInput) {
-  await prisma.savedRecipe.create({
-    data: {
-      title: recipe.title,
-      ingredients: recipe.ingredients,
-      missingIngredients: recipe.missingIngredients,
-      steps: recipe.steps,
-    },
-  })
-  revalidatePath('/recettes')
-}
-
-export async function getSavedRecipes() {
-  return prisma.savedRecipe.findMany({
-    orderBy: { createdAt: 'desc' },
-  })
-}
-
-export async function deleteSavedRecipe(id: string) {
-  await prisma.savedRecipe.delete({ where: { id } })
-  revalidatePath('/recettes')
 }
